@@ -10,13 +10,13 @@ class CashInClass
     private const MaxFee = 5.00;
 
     /**
-     * @var PrintOutClass
+     * @var MoneyExchangeClass
      */
-    private $PrintOut;
+    private $moneyExchanger;
 
-    public function __construct(PrintOutClass $print_out)
+    public function __construct(MoneyExchangeClass $money_exchanger)
     {
-        $this->PrintOut = $print_out;
+        $this->moneyExchanger = $money_exchanger;
     }
 
     /**
@@ -24,11 +24,29 @@ class CashInClass
      */
     public function countFee(array $payment): void
     {
-        $fee = $payment[4] * (self::CommissionFeePercent / 100);
-        if ($fee > self::MaxFee) {
-            $fee = self::MaxFee;
+        [, , , , $amount, $currency] = $payment;
+
+        $fee = $amount * (self::CommissionFeePercent / 100);
+        if ($currency === 'EUR') {
+            if ($fee > self::MaxFee) {
+                $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, self::MaxFee);
+            } else {
+                $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
+            }
+
+            echo $fee_rounded;
+            return;
+
         }
 
-        $this->PrintOut->print($payment[5], $fee);
+        $fee_in_eur = $this->moneyExchanger->convertToEur($currency, $fee);
+        if ($fee_in_eur > self::MaxFee) {
+            $fee = $this->moneyExchanger->exchangeToOriginalCurrency(self::MaxFee, $currency);
+            $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
+        }else{
+            $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
+        }
+
+        echo $fee_rounded;
     }
 }

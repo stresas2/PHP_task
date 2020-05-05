@@ -8,33 +8,32 @@ class CashOutClass
 {
     private const userLegal = 'legal';
     private const userNatural = 'natural';
-    private const legalFeePrecent = 0.3;
-    private const naturalFeePrecent = 0.3;
+    private const legalFeePercent = 0.3;
+    private const naturalFeePercent = 0.3;
     private const naturalFreeCharge = 1000.00;
     private const naturalFreeTimes = 3;
     private const legalMinFee = 0.50;
-    private const EUR_USD = 1.1497;
-    private const EUR_JPY = 129.53;
 
     /**
      * @var HistoryClass
      */
     private $history;
-    /**
-     * @var PrintOutClass
-     */
-    private $PrintOut;
 
-    public function __construct(HistoryClass $history_all, PrintOutClass $print_out)
+    /**
+     * @var MoneyExchangeClass
+     */
+    private $moneyExchanger;
+
+    public function __construct(HistoryClass $history_all, MoneyExchangeClass $money_exchanger)
     {
         $this->history = $history_all;
-        $this->PrintOut = $print_out;
+        $this->moneyExchanger = $money_exchanger;
     }
 
     /**
      * @param array $payment
      */
-    public function countFee(array $payment): void
+    public function countFeeByUser(array $payment): void
     {
         switch ($payment[2]) {
             case self::userLegal:
@@ -52,12 +51,29 @@ class CashOutClass
      */
     private function countLegalFee(array $payment): void
     {
-        $fee = $payment[4] * (self::legalFeePrecent / 100);
-        if ($fee < self::legalMinFee) {
-            $fee = self::legalMinFee;
+        [, , , , $amount, $currency] = $payment;
+
+        $fee = $amount * (self::legalFeePercent / 100);
+        if ($currency === 'EUR') {
+            if ($fee < self::legalMinFee) {
+                $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, self::legalMinFee);
+            } else {
+                $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
+            }
+
+            echo $fee_rounded;
+            return;
         }
 
-        $this->PrintOut->print($payment[5], $fee);
+        $fee_in_eur = $this->moneyExchanger->convertToEur($currency, $fee);
+        if ($fee_in_eur < self::legalMinFee) {
+            $fee = $this->moneyExchanger->exchangeToOriginalCurrency(self::legalMinFee, $currency);
+            $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
+        } else {
+            $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
+        }
+
+        echo $fee_rounded;
     }
 
     /**
@@ -70,30 +86,44 @@ class CashOutClass
 
         $history_payments = $this->history->gerUserPayments($user);
         $payments_in_week = $this->paymentsByWeek($date, $history_payments);
+        // jei mokejimu daugiau nei leistina skaiciuojami fee (nereikalinga valiutu keitimas
         if (count($payments_in_week) > self::naturalFreeTimes) {
-            $this->count($currency, $amount);
+            $fee = $this->countFee($amount);
+            $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
+            echo $fee_rounded;
             return;
         }
 
         $week_amounts_array = array_map(static function ($payment) {
             return [$payment[5], $payment[4]];
         }, $payments_in_week);
-        $week_payments_amount = $this->totalAmountInEur($week_amounts_array);
+        $week_payments_amount = $this->moneyExchanger->totalAmountInEur($week_amounts_array);
 
+        // jei dienos savaites limitas jau virstijas
         if ($week_payments_amount > self::naturalFreeCharge) {
-            $this->count($currency, $amount);
+            $fee = $this->countFee($amount);
+            $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
+            echo $fee_rounded;
             return;
         }
 
-        $payment_eur = $this->totalAmountInEur([[$currency, $amount]]);
+        $payment_eur = $this->moneyExchanger->convertToEur($currency, $amount);
         $total = $week_payments_amount + $payment_eur;
+
+        //jei savaites limitas virsitas tik su siuo mokejimu
         if ($total > self::naturalFreeCharge) {
             $fee_amount = $total - self::naturalFreeCharge;
-            $this->count($currency, $fee_amount);
+            $fee_in_eur = $this->countFee($fee_amount);
+            $fee = $this->moneyExchanger->exchangeToOriginalCurrency($fee_in_eur, $currency);
+            $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
+            echo $fee_rounded;
             return;
         }
 
-        $this->PrintOut->print(null, 0);
+        if ($total <= self::naturalFreeCharge) {
+            echo 0 . PHP_EOL;
+            return;
+        }
     }
 
     /**
@@ -115,47 +145,12 @@ class CashOutClass
     }
 
     /**
-     * @param string $currency
      * @param float $amount
-     */
-    private function count(string $currency, float $amount): void
-    {
-        $fee = $amount * (self::naturalFeePrecent / 100);
-        switch ($currency) {
-            case PaymentClass::C_USD:
-                $fee *= self::EUR_USD;
-                break;
-            case PaymentClass::C_JPY:
-                $fee *= self::EUR_JPY;
-                break;
-            default:
-                break;
-        }
-
-        $this->PrintOut->print($currency, $fee);
-    }
-
-    /**
-     * @param array $week_amounts
      * @return float
      */
-    private function totalAmountInEur(array $week_amounts): float
+    private function countFee(float $amount): float
     {
-        $total_amount = 0;
-        foreach ($week_amounts as $amount) {
-            switch ($amount[0]) {
-                case PaymentClass::C_USD:
-                    $total_amount += $amount[1] / self::EUR_USD;
-                    break;
-                case PaymentClass::C_JPY:
-                    $total_amount += $amount[1] / self::EUR_JPY;
-                    break;
-                case PaymentClass::C_EUR:
-                    $total_amount += $amount[1];
-                    break;
-            }
-        }
-
-        return $total_amount;
+        return $amount * (self::naturalFeePercent / 100);
     }
+
 }

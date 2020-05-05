@@ -9,10 +9,6 @@ class PaymentClass
     private const cashOut = 'cash_out';
     private const cashIn = 'cash_in';
 
-    public const C_EUR = 'EUR';
-    public const C_USD = 'USD';
-    public const C_JPY = 'JPY';
-
     /**
      * @var array
      */
@@ -33,8 +29,8 @@ class PaymentClass
     public function __construct(array $payment_all)
     {
         $this->payments = $payment_all;
-        $this->cashIn = new CashInClass(new PrintOutClass());
-        $this->cashOut = new CashOutClass(new HistoryClass(), new PrintOutClass());
+        $this->cashIn = new CashInClass(new MoneyExchangeClass());
+        $this->cashOut = new CashOutClass(new HistoryClass(), new MoneyExchangeClass());
     }
 
     public function doPayments(): void
@@ -45,7 +41,7 @@ class PaymentClass
                     $this->cashIn->countFee($payment);
                     break;
                 case self::cashOut:
-                    $this->cashOut->countFee($payment);
+                    $this->cashOut->countFeeByUser($payment);
                     break;
             }
         }
