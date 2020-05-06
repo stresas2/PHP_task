@@ -20,9 +20,8 @@ class MoneyExchangeClass
      */
     public function convertToEur(string $currency, float $fee): float
     {
-        foreach ($this->currencies as $currency_data)
-        {
-            if($currency_data[0] === $currency){
+        foreach ($this->currencies as $currency_data) {
+            if ($currency_data[0] === $currency) {
                 return $fee / $currency_data[1];
             }
         }
@@ -36,9 +35,8 @@ class MoneyExchangeClass
     {
         $total_amount = 0;
         foreach ($week_amounts as $amount) {
-            foreach ($this->currencies as $currency_data)
-            {
-                if($currency_data[0] === $amount[0]){
+            foreach ($this->currencies as $currency_data) {
+                if ($currency_data[0] === $amount[0]) {
                     $total_amount += $amount[1] / $currency_data[1];
                 }
             }
@@ -54,9 +52,8 @@ class MoneyExchangeClass
      */
     public function exchangeToOriginalCurrency(float $fee_in_eur, string $currency): float
     {
-        foreach ($this->currencies as $currency_data)
-        {
-            if($currency_data[0] === $currency){
+        foreach ($this->currencies as $currency_data) {
+            if ($currency_data[0] === $currency) {
                 return $fee_in_eur * $currency_data[1];
             }
         }
@@ -69,14 +66,11 @@ class MoneyExchangeClass
      */
     public function roundByCurrency(string $currency, float $amount): string
     {
-        foreach ($this->currencies as $currency_data)
-        {
+        foreach ($this->currencies as $currency_data) {
             $ceil = 10 ** $currency_data[2];
-            if($currency_data[0] === $currency){
+            if ($currency_data[0] === $currency) {
                 return number_format(ceil($amount * $ceil) / $ceil, $currency_data[2], '.', '') . PHP_EOL;
             }
         }
     }
-
-
 }

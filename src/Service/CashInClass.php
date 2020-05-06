@@ -36,14 +36,13 @@ class CashInClass
 
             echo $fee_rounded;
             return;
-
         }
 
         $fee_in_eur = $this->moneyExchanger->convertToEur($currency, $fee);
         if ($fee_in_eur > self::MaxFee) {
             $fee = $this->moneyExchanger->exchangeToOriginalCurrency(self::MaxFee, $currency);
             $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
-        }else{
+        } else {
             $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
         }
 

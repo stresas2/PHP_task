@@ -86,7 +86,6 @@ class CashOutClass
 
         $history_payments = $this->history->gerUserPayments($user);
         $payments_in_week = $this->paymentsByWeek($date, $history_payments);
-        // jei mokejimu daugiau nei leistina skaiciuojami fee (nereikalinga valiutu keitimas
         if (count($payments_in_week) > self::naturalFreeTimes) {
             $fee = $this->countFee($amount);
             $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
@@ -99,7 +98,6 @@ class CashOutClass
         }, $payments_in_week);
         $week_payments_amount = $this->moneyExchanger->totalAmountInEur($week_amounts_array);
 
-        // jei dienos savaites limitas jau virstijas
         if ($week_payments_amount > self::naturalFreeCharge) {
             $fee = $this->countFee($amount);
             $fee_rounded = $this->moneyExchanger->roundByCurrency($currency, $fee);
@@ -110,7 +108,6 @@ class CashOutClass
         $payment_eur = $this->moneyExchanger->convertToEur($currency, $amount);
         $total = $week_payments_amount + $payment_eur;
 
-        //jei savaites limitas virsitas tik su siuo mokejimu
         if ($total > self::naturalFreeCharge) {
             $fee_amount = $total - self::naturalFreeCharge;
             $fee_in_eur = $this->countFee($fee_amount);
@@ -152,5 +149,4 @@ class CashOutClass
     {
         return $amount * (self::naturalFeePercent / 100);
     }
-
 }
