@@ -4,14 +4,11 @@ namespace Task\CommissionTask\Service;
 
 class MoneyExchangeClass
 {
-    private $currencies = [];
-
-    public function __construct()
-    {
-        $this->currencies[] = ['EUR', 1, 2];
-        $this->currencies[] = ['USD', 1.1497, 2];
-        $this->currencies[] = ['JPY', 129.53, 0];
-    }
+    public const CURRENCIES = [
+        'EUR' => [1, 2],
+        'USD' => [1.1497, 2],
+        'JPY' => [129.53, 0]
+    ];
 
     /**
      * @param string $currency
@@ -20,9 +17,9 @@ class MoneyExchangeClass
      */
     public function convertToEur(string $currency, float $fee): float
     {
-        foreach ($this->currencies as $currency_data) {
-            if ($currency_data[0] === $currency) {
-                return $fee / $currency_data[1];
+        foreach (self::CURRENCIES as $currency_name => $currency_data) {
+            if ($currency_name === $currency) {
+                return $fee / $currency_data[0];
             }
         }
     }
@@ -34,10 +31,10 @@ class MoneyExchangeClass
     public function totalAmountInEur(array $week_amounts): float
     {
         $total_amount = 0;
-        foreach ($week_amounts as $amount) {
-            foreach ($this->currencies as $currency_data) {
-                if ($currency_data[0] === $amount[0]) {
-                    $total_amount += $amount[1] / $currency_data[1];
+        foreach ($week_amounts as $payment) {
+            foreach (self::CURRENCIES as $currency_name => $currency_data) {
+                if ($currency_name === $payment[0]) {
+                    $total_amount += $payment[1] / $currency_data[0];
                 }
             }
         }
@@ -52,9 +49,9 @@ class MoneyExchangeClass
      */
     public function exchangeToOriginalCurrency(float $fee_in_eur, string $currency): float
     {
-        foreach ($this->currencies as $currency_data) {
-            if ($currency_data[0] === $currency) {
-                return $fee_in_eur * $currency_data[1];
+        foreach (self::CURRENCIES as $currency_name => $currency_data) {
+            if ($currency_name === $currency) {
+                return $fee_in_eur * $currency_data[0];
             }
         }
     }
@@ -66,10 +63,10 @@ class MoneyExchangeClass
      */
     public function roundByCurrency(string $currency, float $amount): string
     {
-        foreach ($this->currencies as $currency_data) {
-            $ceil = 10 ** $currency_data[2];
-            if ($currency_data[0] === $currency) {
-                return number_format(ceil($amount * $ceil) / $ceil, $currency_data[2], '.', '') . PHP_EOL;
+        foreach (self::CURRENCIES as $currency_name => $currency_data) {
+            $ceil = 10 ** $currency_data[1];
+            if ($currency_name === $currency) {
+                return number_format(ceil($amount * $ceil) / $ceil, $currency_data[1], '.', '') . PHP_EOL;
             }
         }
     }

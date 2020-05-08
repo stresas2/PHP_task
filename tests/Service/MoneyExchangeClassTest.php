@@ -9,32 +9,55 @@ class MoneyExchangeClassTest extends TestCase
 {
     private $sut;
 
+    private $currencies;
+
     public function setUp(): void
     {
         $this->sut = new MoneyExchangeClass();
+        $this->currencies = MoneyExchangeClass::CURRENCIES;
     }
 
     public function testConvertToEur(): void
     {
-        $result = $this->sut->convertToEur('JPY', 259.06);
-        $this->assertSame(2.0, $result);
+        $test_input = ['JPY', 259.06];
+        $currency = $this->currencies[$test_input[0]];
+        $expected = $test_input[1] / $currency[0];
+        $result = $this->sut->convertToEur($test_input[0], $test_input[1]);
+        $this->assertSame($expected, $result);
     }
 
     public function testTotalAmountInEur(): void
     {
-        $result = $this->sut->totalAmountInEur([['JPY', 259.06], ['EUR', 5]]);
-        $this->assertSame(7.0, $result);
+        $test_input = [['JPY', 500], ['USD', 2], ['EUR', 5]];
+        $total_amount = 0;
+        foreach ($test_input as $payment) {
+            foreach ($this->currencies as $currency_name => $currency_data) {
+                if ($currency_name === $payment[0]) {
+                    $total_amount += $payment[1] / $currency_data[0];
+                }
+            }
+        }
+
+        $result = $this->sut->totalAmountInEur($test_input);
+        $this->assertSame($total_amount, $result);
     }
 
     public function testExchangeToOriginalCurrency(): void
     {
-        $result = $this->sut->exchangeToOriginalCurrency(1, 'USD');
-        $this->assertSame(1.1497, $result);
+        $test_input = ['USD', 8];
+        $currency = $this->currencies[$test_input[0]];
+        $expected = $test_input[1] * $currency[0];
+        $result = $this->sut->exchangeToOriginalCurrency($test_input[1], $test_input[0]);
+        $this->assertSame($expected, $result);
     }
 
     public function testRoundByCurrency(): void
     {
-        $result = $this->sut->roundByCurrency('JPY', 188.88);
-        $this->assertSame(189.0 . PHP_EOL, $result);
+        $test_input = ['JPY', 500];
+        $currency = $this->currencies[$test_input[0]];
+        $ceil = 10 ** $currency[1];
+        $expected = number_format(ceil($test_input[1] * $ceil) / $ceil, $currency[1], '.', '') . PHP_EOL;
+        $result = $this->sut->roundByCurrency($test_input[0], $test_input[1]);
+        $this->assertSame($expected, $result);
     }
 }
